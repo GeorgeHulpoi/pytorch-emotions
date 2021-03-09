@@ -1,2 +1,3 @@
 *.pickle
 *.rdb
+__pycache__/
