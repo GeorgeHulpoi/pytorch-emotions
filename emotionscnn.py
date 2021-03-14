@@ -32,7 +32,7 @@ class EmotionsCNN(nn.Module):
 
         self.fcLayer = nn.Linear(fcInputSize, emotions)
 
-        self.lossFunc = nn.L1Loss()
+        self.lossFunc = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.parameters(), learnRate)
 
     def forward(self, input):
@@ -44,19 +44,18 @@ class EmotionsCNN(nn.Module):
         return output
 
     def distributionToTensor(self, distribution):
-        vector = [float(distribution['angry']),  float(distribution['happy']), float(distribution['surprise'])]
-        target = torch.FloatTensor(vector)
-        target = target.unsqueeze(0).to(self.device)
-        return target
+        vector = [float(distribution['angry']), float(distribution['happy']), float(distribution['surprise'])]
+        return torch.FloatTensor(vector).to(self.device)
 
     def imageToTensor(self, image):
         return Converter.base64ImageToTensor(image).unsqueeze(0).to(self.device)
 
     def train(self, image, distribution):
-        target = self.distributionToTensor(distribution)
+        distributionTensor = self.distributionToTensor(distribution)
+        target = torch.argmax(distributionTensor)
         imageTensor = self.imageToTensor(image)
         self.optimizer.zero_grad()
         predicted = self.forward(imageTensor)
-        loss = self.lossFunc(predicted, target)
+        loss = self.lossFunc(predicted, target.unsqueeze(0))
         loss.backward()
         self.optimizer.step()
