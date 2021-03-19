@@ -50,12 +50,13 @@ class EmotionsCNN(nn.Module):
     def imageToTensor(self, image):
         return Converter.base64ImageToTensor(image).unsqueeze(0).to(self.device)
 
-    def train(self, image, distribution):
-        distributionTensor = self.distributionToTensor(distribution)
-        target = torch.argmax(distributionTensor)
-        imageTensor = self.imageToTensor(image)
+    def train(self, image, label):
         self.optimizer.zero_grad()
-        predicted = self.forward(imageTensor)
-        loss = self.lossFunc(predicted, target.unsqueeze(0))
+        predicted = self.forward(image)
+        loss = self.lossFunc(predicted, label)
         loss.backward()
         self.optimizer.step()
+
+    def test(self, image, label):
+        predicted = self.forward(image)
+        return label[0] == torch.argmax(predicted)

@@ -1,3 +1,4 @@
 *.pickle
 *.rdb
 __pycache__/
+.vscode
