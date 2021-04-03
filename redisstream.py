@@ -30,6 +30,12 @@ class RedisStream:
                         self.queue.put(key)
             time.sleep(0.001)
 
+    def deleteKeyData(self, key):
+        pipe = self.connectionPool.pipeline()
+        pipe.hdel(key, 'image')
+        pipe.hdel(key, 'distribution')
+        return pipe.execute()
+
     def getKeyData(self, key):
         pipe = self.connectionPool.pipeline()
         pipe.hget(key, 'image')
