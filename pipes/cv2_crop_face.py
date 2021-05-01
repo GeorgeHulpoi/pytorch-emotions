@@ -11,10 +11,12 @@ class CV2CropFacePipe(Pipe):
     def process(self, input: np.array) -> np.array:
         image = input.copy()
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
 
         if len(faces) == 0:
             return None
+        elif len(faces) > 1:
+            print(f'Multiple faces ({len(faces)}) detected...')
 
         H, W, channels = image.shape 
         (x, y, w, h) = faces[0]

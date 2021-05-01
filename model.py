@@ -23,7 +23,8 @@ class _Model(nn.Module):
 
         self.layer1 = nn.Sequential(
             nn.Conv2d(imageChannels, 8, 3),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.MaxPool2d(2))
 
         self.layer2 = nn.Sequential(
             nn.Conv2d(8, 16, 3),
@@ -32,16 +33,23 @@ class _Model(nn.Module):
 
         self.layer3 = nn.Sequential(
             nn.Conv2d(16, 32, 3),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.MaxPool2d(2))
 
         self.layer4 = nn.Sequential(
             nn.Conv2d(32, 64, 3),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))
 
         self.layer5 = nn.Sequential(
             nn.Conv2d(64, 128, 3),
-            nn.MaxPool2d(2),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))
+
+        self.layer6 = nn.Sequential(
+            nn.Conv2d(128, 256, 3),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))
 
         fcInputSize = torch.rand(1, imageChannels, imageHeight, imageWidth)
         fcInputSize = self.layer1(fcInputSize)
@@ -49,23 +57,30 @@ class _Model(nn.Module):
         fcInputSize = self.layer3(fcInputSize)
         fcInputSize = self.layer4(fcInputSize)
         fcInputSize = self.layer5(fcInputSize)
+        fcInputSize = self.layer6(fcInputSize)
         fcInputSize = functools.reduce(operator.mul, list(fcInputSize.shape))
 
-        self.fcLayer = nn.Linear(fcInputSize, emotions)
+        self.fcLayer1 = nn.Linear(fcInputSize, 512)
+        self.fcLayer2 = nn.Linear(512, 256)
+        self.fcLayer3 = nn.Linear(256, 256)
+        self.fcLayer4 = nn.Linear(256, emotions)
 
         self.lossFunc = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.parameters(), learnRate)
 
     def forward(self, input):
-        output = torch.div(input, 255)
-        print(output)
         output = self.layer1(input)
         output = self.layer2(output)
         output = self.layer3(output)
         output = self.layer4(output)
         output = self.layer5(output)
+        output = self.layer6(output)
+
         output = output.view([1, -1])
-        output = self.fcLayer(output)
+        output = F.relu(self.fcLayer1(output))
+        output = F.relu(self.fcLayer2(output))
+        output = F.relu(self.fcLayer3(output))
+        output = self.fcLayer4(output)
         return output
 
     def train(self, image, label):
@@ -74,8 +89,8 @@ class _Model(nn.Module):
 
         self.optimizer.zero_grad()
         predicted = self.forward(image)
-        print(predicted)
-        print(label)
+        #print(predicted)
+        #print(label)
         loss = self.lossFunc(predicted, label)
         loss.backward()
         self.optimizer.step()
@@ -85,8 +100,8 @@ class _Model(nn.Module):
         label = label.to(device)
 
         predicted = self.forward(image)
-        print(predicted)
-        print(label)
+        # print(predicted)
+        # print(label)
         return label[0] == torch.argmax(predicted)
 
 if os.path.exists(modelPath):

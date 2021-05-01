@@ -7,7 +7,6 @@ import queue
 import traceback
 import settings
 import redisstream
-from converter import Converter
 from pipes import Base64ToImagePipe, ImageToCV2Pipe, CV2CropFacePipe, CV2ToTensorPipe, ImageToTensorPipe, CV2ToImagePipe, CV2ResizePipe
 from pipeline import Pipeline
 
