@@ -1,4 +1,3 @@
-import os
 import sys
 import time
 import queue
@@ -12,40 +11,38 @@ class RedisStream:
 
     def __init__(self):
         self.queue = queue.Queue()
-        self.connectionPool = redis.Redis(host=os.getenv('REDIS_HOST'), port=os.getenv('REDIS_PORT'))
-        self.subject= self.connectionPool.pubsub()
-        self.subject.subscribe(os.getenv('REDIS_CHANNEL'))
-
-    def threadCallback(self):
-        while True:
-            if self.threadBreak:
-                break
-            message = self.subject.get_message()
-            if message:
-                if  message['type'] == 'message':
-                    if message['channel'].decode() == os.getenv('REDIS_CHANNEL'):
-                        key = message['data'].decode()
-                        # Pune in coada, iar daca este plina (ceea ce nu e cazul aici)
-                        # nu va trece mai departe pana cand nu se executa punerea
-                        self.queue.put(key)
-            time.sleep(0.001)
+        self.__connectionPool = redis.Redis(host='localhost', port=6379)
+        self.__subject = self.__connectionPool.pubsub()
+        self.__subject.subscribe('dataset-generator')
 
     def deleteKeyData(self, key):
-        pipe = self.connectionPool.pipeline()
+        pipe = self.__connectionPool.pipeline()
         pipe.hdel(key, 'image')
         pipe.hdel(key, 'distribution')
         return pipe.execute()
 
     def getKeyData(self, key):
-        pipe = self.connectionPool.pipeline()
+        pipe = self.__connectionPool.pipeline()
         pipe.hget(key, 'image')
         pipe.hget(key, 'distribution')
         return pipe.execute()
 
     def startListening(self):
-        self.threadBreak = False
-        self.thread = threading.Thread(target=self.threadCallback)
-        self.thread.start()
+        self.__threadBreak = False
+        self.__thread = threading.Thread(target=self.__threadCallback)
+        self.__thread.start()
 
     def stopListening(self):
-        self.threadBreak = True
+        self.__threadBreak = True
+
+    def __threadCallback(self):
+        while True:
+            if self.__threadBreak:
+                break
+            message = self.__subject.get_message()
+            if message:
+                if  message['type'] == 'message':
+                    if message['channel'].decode() == 'dataset-generator':
+                        key = message['data'].decode()
+                        self.queue.put(key)
+            time.sleep(0.01)

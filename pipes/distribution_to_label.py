@@ -1,9 +1,9 @@
 import torch
 from typing import Any
-from pipes import Pipe
+from pipes import PipeTransform
 
-class DistributionToLabelPipe(Pipe):
-    def process(self, input: Any) -> int:
+class DistributionToLabelPipe(PipeTransform):
+    def transform(self, input: Any) -> int:
         output = [float(input['angry']), float(input['happy']), float(input['surprise'])]
         output = torch.FloatTensor(output)
         return torch.argmax(output).unsqueeze(0)

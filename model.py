@@ -3,70 +3,28 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import functools
-import operator
-
-
 modelPath = 'model.pt'
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-class _Model(nn.Module):
+class NeuronalNetwork(nn.Module):
     
     def __init__(self):
-        super(_Model, self).__init__()
+        super(NeuronalNetwork, self).__init__()
 
-        imageWidth = int(os.getenv('IMAGE_WIDTH'))
-        imageHeight = int(os.getenv('IMAGE_HEIGHT'))
-        imageChannels = int(os.getenv('IMAGE_CHANNELS'))
-        emotions = int(os.getenv('EMOTIONS'))
-        learnRate = float(os.getenv('LEARN_RATE'))
+        self.layer1 = nn.Sequential(nn.Conv2d(3, 8, 3), nn.ReLU(), nn.MaxPool2d(2))
+        self.layer2 = nn.Sequential(nn.Conv2d(8, 16, 3), nn.ReLU(), nn.MaxPool2d(2))
+        self.layer3 = nn.Sequential(nn.Conv2d(16, 32, 3), nn.ReLU(), nn.MaxPool2d(2))
+        self.layer4 = nn.Sequential(nn.Conv2d(32, 64, 3), nn.ReLU(), nn.MaxPool2d(2, 2))
+        self.layer5 = nn.Sequential(nn.Conv2d(64, 128, 3), nn.ReLU(), nn.MaxPool2d(2, 2))
+        self.layer6 = nn.Sequential(nn.Conv2d(128, 256, 3), nn.ReLU(), nn.MaxPool2d(2, 2))
 
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(imageChannels, 8, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(8, 16, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(16, 32, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2))
-
-        self.layer4 = nn.Sequential(
-            nn.Conv2d(32, 64, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2))
-
-        self.layer5 = nn.Sequential(
-            nn.Conv2d(64, 128, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2))
-
-        self.layer6 = nn.Sequential(
-            nn.Conv2d(128, 256, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2))
-
-        fcInputSize = torch.rand(1, imageChannels, imageHeight, imageWidth)
-        fcInputSize = self.layer1(fcInputSize)
-        fcInputSize = self.layer2(fcInputSize)
-        fcInputSize = self.layer3(fcInputSize)
-        fcInputSize = self.layer4(fcInputSize)
-        fcInputSize = self.layer5(fcInputSize)
-        fcInputSize = self.layer6(fcInputSize)
-        fcInputSize = functools.reduce(operator.mul, list(fcInputSize.shape))
-
-        self.fcLayer1 = nn.Linear(fcInputSize, 512)
+        self.fcLayer1 = nn.Linear(256, 512)
         self.fcLayer2 = nn.Linear(512, 256)
         self.fcLayer3 = nn.Linear(256, 256)
-        self.fcLayer4 = nn.Linear(256, emotions)
+        self.fcLayer4 = nn.Linear(256, 3)
 
         self.lossFunc = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.parameters(), learnRate)
+        self.optimizer = torch.optim.SGD(self.parameters(), lr=0.001)
 
     def forward(self, input):
         output = self.layer1(input)
@@ -76,7 +34,7 @@ class _Model(nn.Module):
         output = self.layer5(output)
         output = self.layer6(output)
 
-        output = output.view([1, -1])
+        output = torch.flatten(output, start_dim=1)
         output = F.relu(self.fcLayer1(output))
         output = F.relu(self.fcLayer2(output))
         output = F.relu(self.fcLayer3(output))
@@ -89,8 +47,6 @@ class _Model(nn.Module):
 
         self.optimizer.zero_grad()
         predicted = self.forward(image)
-        #print(predicted)
-        #print(label)
         loss = self.lossFunc(predicted, label)
         loss.backward()
         self.optimizer.step()
@@ -100,13 +56,8 @@ class _Model(nn.Module):
         label = label.to(device)
 
         predicted = self.forward(image)
-        # print(predicted)
-        # print(label)
         return label[0] == torch.argmax(predicted)
 
+Model = NeuronalNetwork().to(device)
 if os.path.exists(modelPath):
-    Model = _Model()
     Model.load_state_dict(torch.load(modelPath))
-    Model.to(device)
-else:
-    Model = _Model().to(device)

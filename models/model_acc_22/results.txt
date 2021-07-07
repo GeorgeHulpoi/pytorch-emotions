@@ -1,2 +1,0 @@
-Accuracy (photos with background): 5.88%
-Accuracy (photos without background): 22.2%

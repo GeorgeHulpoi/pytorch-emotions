@@ -1,8 +1,8 @@
+import torch
 import PIL.Image
 import torchvision.transforms
+from pipes import PipeTransform
 
-from pipes import Pipe
-
-class ImageToTensorPipe(Pipe):
-    def process(self, input: PIL.Image) -> PIL.Image:
+class ImageToTensorPipe(PipeTransform):
+    def transform(self, input: PIL.Image) -> torch.tensor:
         return torchvision.transforms.ToTensor()(input).unsqueeze(0)
